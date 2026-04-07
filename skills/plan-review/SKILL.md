@@ -150,7 +150,7 @@ Priority fixes before implementation:
 
 1. **Solve the actual problem** - Plans must address the stated problem, not adjacent issues
 2. **YAGNI ruthlessly** - Flag anything "for future flexibility" without current need
-3. **Tests are mandatory** - Every task must include test requirements
+3. **Tests are mandatory** - Every task must include test requirements. The only exception is when stated clearly in plan in cases when the feature is simple or it is experimenting.
 4. **Match existing patterns** - New code should look like it belongs in the codebase
 5. **Simple over clever** - Prefer straightforward solutions
 6. **Ask when unclear** - If plan context is ambiguous, ask user rather than guess

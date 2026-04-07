@@ -68,8 +68,9 @@ show the discovered context, then ask questions **one at a time** using the AskU
    - can be open-ended if constraints vary widely
    - wait for response before next question
 
-4. **testing approach**: use AskUserQuestion - "do you prefer TDD or regular approach?"
-   - options: "TDD (tests first)" and "Regular (code first, then tests)"
+4. **testing approach**: use AskUserQuestion - "do you prefer TDD, regular approach or no tests?"
+   - options: "TDD (tests first)", "Regular (code first, then tests)" and "No tests"
+   - No tests usually okay for experimenting and fast development
    - store preference for reference during implementation
    - wait for response before next question
 
@@ -130,23 +131,23 @@ check `docs/plans/` for existing files, then create `docs/plans/yyyymmdd-<task-n
 - dependencies identified: [dependencies]
 
 ## Development Approach
-- **testing approach**: [TDD / Regular - from user preference in planning]
+- **testing approach**: [TDD / Regular / No tests - from user preference in planning]
 - complete each task fully before moving to the next
 - make small, focused changes
 - **CRITICAL: every task MUST include new/updated tests** for code changes in that task
-  - tests are not optional - they are a required part of the checklist
+  - tests only optional for simple implementations and scafolding. In other cases - try to force user to use them and be a part if the checklist
   - write unit tests for new functions/methods
   - write unit tests for modified functions/methods
   - add new test cases for new code paths
   - update existing test cases if behavior changes
   - tests cover both success and error scenarios
-- **CRITICAL: all tests must pass before starting next task** - no exceptions
+- **CRITICAL: all tests must pass before starting next task** - if tests requirement is present
 - **CRITICAL: update this plan file when scope changes during implementation**
-- run tests after each change
+- run tests after each change - when required
 - maintain backward compatibility
 
 ## Testing Strategy
-- **unit tests**: required for every task (see Development Approach above)
+- **unit tests**: required for every task (see Development Approach above), unless no tests are requested
 - **e2e tests**: if project has UI-based e2e tests (Playwright, Cypress, etc.):
   - UI changes → add/update e2e tests in same task as UI code
   - backend changes supporting UI → add/update e2e tests in same task
@@ -174,7 +175,6 @@ Task structure guidelines:
 - Each task MUST have a **Files:** block listing files to Create/Modify (before checkboxes)
 - Aim for ~5 checkboxes per task (more is OK if logically atomic)
 - **CRITICAL: Each task MUST end with writing/updating tests before moving to next**
-  - tests are not optional - they are a required deliverable of every task
   - write tests for all NEW code added in this task
   - write tests for all MODIFIED code in this task
   - include both success and error scenarios in tests
@@ -290,7 +290,7 @@ then use AskUserQuestion:
 
 ## execution enforcement
 
-**CRITICAL testing rules during implementation:**
+**CRITICAL testing rules during implementation (applicable when tests are passed as requirement):**
 
 1. **after completing code changes in a task**:
    - STOP before moving to next task
@@ -323,7 +323,6 @@ then use AskUserQuestion:
 
 6. **partial implementation exception**:
    - if a task provides partial implementation where tests cannot pass until a later task:
-     - still write the tests as part of this task (required)
      - add TODO comment in test code explaining the dependency
      - mark the test checkbox as completed with note: `[x] write tests ... (fails until Task X)`
      - do NOT skip test writing or defer until later
