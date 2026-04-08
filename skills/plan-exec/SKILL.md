@@ -33,6 +33,8 @@ Always substitute: `PLAN_FILE_PATH`, `PROGRESS_FILE_PATH`, `DEFAULT_BRANCH`, `TE
 
 **BEFORE ANY OTHER STEPS**, execute this initialization command using the Bash tool to set up the SKILL_DIR environment variable. This detects which environment (Claude Code or OpenCode) is running the skill.
 
+**CRITICAL**: If SKILL_DIR cannot be located, the initialization **MUST STOP and report the error to the user**. Do NOT proceed to any subsequent steps.
+
 After running the initialization, **print the result to the user** (show SKILL_DIR value and environment detected) before proceeding to Step 1:
 
 ```bash
@@ -80,8 +82,15 @@ if [ -z "$SKILL_DIR" ]; then
 fi
 
 if [ -z "$SKILL_DIR" ]; then
-    echo "error: cannot locate plan-exec skill directory" >&2
-    echo "hint: install with: ./install.sh" >&2
+    echo ""
+    echo "ERROR: Cannot locate plan-exec skill directory"
+    echo "PROCESS STOPPED - Cannot continue without SKILL_DIR"
+    echo ""
+    echo "Possible causes:"
+    echo "  - Skills not installed (run: ./install.sh)"
+    echo "  - Installation is corrupted"
+    echo "  - Neither ~/.claude/skills nor ~/.config/opencode/skills found"
+    echo ""
     exit 1
 fi
 
