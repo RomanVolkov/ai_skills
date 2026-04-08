@@ -1,0 +1,23 @@
+{
+  "skill_name": "german-email-composer",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Write a polite German email to a dentist office. I'm a new patient and want to request an appointment for a cleaning and initial consultation. I'm available on afternoons and evenings, and I have dental insurance. I'd prefer to get an appointment within the next two weeks.",
+      "expected_output": "A formal German letter with greeting, body naturally incorporating all points, and proper closing, followed by English translation. Signed with Roman Volkov.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I need to write a formal letter to the local government (Rathaus) about a permit application. I submitted it three weeks ago under reference number AB-2024-5512. I want to politely inquire about the status and ask when I might expect a decision. I need this for a renovation project starting next month.",
+      "expected_output": "A formal German letter addressing a government office, incorporating the reference number, status inquiry, and timeline concern. German followed by English translation. Signed with Roman Volkov.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Write an email to a car service to book maintenance. I have a 2020 BMW and need an oil change, filter replacement, and brake inspection. I prefer a date in the next week if possible, and I can come by in the morning. Less formal is okay for this.",
+      "expected_output": "A German email with slightly less formal tone (but still using Sie), covering the vehicle details and services needed. Include preferred timing. German version followed by English translation. Signed with Roman Volkov.",
+      "files": []
+    }
+  ]
+}
