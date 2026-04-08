@@ -31,21 +31,30 @@ Always substitute: `PLAN_FILE_PATH`, `PROGRESS_FILE_PATH`, `DEFAULT_BRANCH`, `TE
 
 ### Initialize SKILL_DIR
 
-Before any other steps, determine the skill directory location. This allows scripts to find themselves regardless of working directory or where the skill is installed:
+Before any other steps, determine the skill directory location. This initialization works reliably in both Claude Code and OpenCode:
 
 ```bash
-# Find this skill's directory from wherever plan-exec is running
-# Works from ~/.claude/skills/plan-exec or ~/.config/opencode/skills/plan-exec or anywhere else
-SKILL_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd 2>/dev/null || echo "")
+# Method 1: Try common installation locations (fastest, works in OpenCode)
+for location in ~/.claude/skills/plan-exec ~/.config/opencode/skills/plan-exec; do
+    if [ -d "$location" ]; then
+        SKILL_DIR="$location"
+        break
+    fi
+done
+
+# Method 2: Search for plan-exec skill in standard locations
 if [ -z "$SKILL_DIR" ]; then
-    # Fallback: look for the skill in common locations
-    for location in ~/.claude/skills/plan-exec ~/.config/opencode/skills/plan-exec; do
-        if [ -d "$location" ]; then
-            SKILL_DIR="$location"
-            break
-        fi
-    done
+    SKILL_DIR=$(find ~/.claude/skills ~/.config/opencode/skills -maxdepth 1 -name "plan-exec" -type d 2>/dev/null | head -1)
 fi
+
+# Method 3: Fallback from script location (if running as a standalone script)
+if [ -z "$SKILL_DIR" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd 2>/dev/null)"
+    if [ -d "$SCRIPT_DIR/scripts" ]; then
+        SKILL_DIR="$SCRIPT_DIR"
+    fi
+fi
+
 if [ -z "$SKILL_DIR" ]; then
     echo "error: cannot locate plan-exec skill directory" >&2
     exit 1
