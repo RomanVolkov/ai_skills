@@ -196,18 +196,41 @@ If user chooses "Current directory", proceed normally without worktree.
 
 ### Step 3. Create task list
 
-ALWAYS create tasks using TaskCreate before starting any work. Create one task per plan Task section plus review phases:
+ALWAYS create proper tasks using TaskCreate before starting any work. This prevents OpenCode from trying to interpret markdown task lists with todowrite (which causes the error you may have seen).
 
-For each `### Task N:` section in the plan:
-- `TaskCreate(subject="Task N: <title>", description="<checkbox items>", activeForm="Executing task N...")`
+**Do this immediately after choosing worktree mode:**
 
-Then add review tasks:
-- `TaskCreate(subject="Review phase 1: comprehensive", description="5 parallel review agents + fixer", activeForm="Running review phase 1...")`
-- `TaskCreate(subject="Review phase 2: code smells", description="smells agent + fixer", activeForm="Running smells review...")`
-- `TaskCreate(subject="Review phase 3: critical only", description="2 review agents + fixer", activeForm="Running review phase 3...")`
-- `TaskCreate(subject="Finalize", description="rebase, clean up commits, verify", activeForm="Finalizing...")`
+1. **Read the plan file** and extract each `### Task N:` section
+2. **For each task section**, call TaskCreate with:
+   - `subject`: "Task N: [exact title from plan]"
+   - `description`: "[list of all checkbox items in that task]"
+   - `activeForm`: "Executing task N..."
 
-Update tasks as you go: `TaskUpdate(taskId, status="in_progress")` when starting, `TaskUpdate(taskId, status="completed")` when done.
+   Example:
+   ```
+   TaskCreate(
+     subject="Task 1: Add password hashing utility",
+     description="- create `src/auth/hash` with HashPassword and VerifyPassword functions\n- implement bcrypt-based hashing with configurable cost\n- write tests for HashPassword (success + error cases)\n- write tests for VerifyPassword (success + error cases)\n- run tests - must pass before task 2",
+     activeForm="Executing task 1..."
+   )
+   ```
+
+3. **Store the task IDs** returned by TaskCreate so you can update them as you progress
+
+4. **Add review phase tasks** (these run after all plan tasks are done):
+   ```
+   TaskCreate(subject="Review phase 1: comprehensive", description="Review implementation completeness", activeForm="Running review phase 1...")
+   TaskCreate(subject="Review phase 2: code smells", description="Check for design issues", activeForm="Running review phase 2...")
+   TaskCreate(subject="Review phase 3: critical only", description="Final critical review", activeForm="Running review phase 3...")
+   TaskCreate(subject="Finalize", description="Rebase, clean up commits, verify test suite", activeForm="Finalizing...")
+   ```
+
+5. **Update tasks as you progress**:
+   - `TaskUpdate(taskId, status="in_progress")` when starting a task
+   - `TaskUpdate(taskId, status="completed")` when task succeeds
+   - Store task IDs for later updates
+
+**CRITICAL FOR OPENCODE**: Explicitly calling TaskCreate with proper structure prevents OpenCode from auto-invoking todowrite. Without these explicit calls, OpenCode sees markdown task lists and tries to interpret them as todos, causing the "status undefined" error you may have encountered.
 
 ### Step 4. Create branch
 
@@ -264,15 +287,15 @@ Repeat until no `[ ]` checkboxes remain in any Task section:
 1. **Re-read the plan file** to check current state
 2. **Find the first Task section** (`### Task N:` or `### Iteration N:`) that still has `[ ]` checkboxes
 3. **If none found** — all tasks complete, go to step 7
-4. **Announce the task to the user** — output a visible summary:
-   - Task number and title (from the `### Task N:` header)
-   - List all `[ ]` checkbox items in that task section
-   - Example output:
+4. **Announce the task to the user** — output a brief text summary (NOT markdown task list):
+   - Task number and title
+   - Brief summary of what needs to be done
+   - Example output (text only, not checkboxes):
      ```
-     --- Task 1: Fix error handling ---
-     - [ ] Handle the error from os.ReadFile
-     - [ ] Either log and exit or handle gracefully
+     Starting Task 1: Fix error handling
+     This task involves: handling os.ReadFile errors, logging/exiting appropriately
      ```
+   - **IMPORTANT**: Do NOT output markdown task lists with `- [ ]` syntax here, as OpenCode may try to interpret them as todos and call todowrite. The actual task tracking happens via the TaskCreate calls from Step 3.
 5. **Execute task inline** (no subagent spawning):
    - Resolve `prompts/task.md` from override chain (use `bash "$SKILL_DIR/scripts/resolve-file.sh" prompts/task.md`)
    - Read the task prompt for guidance
