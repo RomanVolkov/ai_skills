@@ -4,7 +4,7 @@
 [![Uses OpenCode](https://img.shields.io/badge/Works%20with-OpenCode-DA7857?logo=anthropic)](https://opencode.com/)
 [![GitHub](https://img.shields.io/badge/GitHub-RomanVolkov%2Fai_skills-blue?logo=github)](https://github.com/RomanVolkov/ai_skills)
 
-A collection of powerful, production-ready AI skills for both **Claude Code** and **OpenCode**. Enhance your software engineering workflow with AI-assisted planning, analysis, code review, and specialized task automation.
+Skills for **Claude Code** and **OpenCode**. Tools for planning, analysis, code review, and task automation.
 
 ## Overview
 
