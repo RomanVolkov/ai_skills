@@ -84,8 +84,7 @@ For each `### Task N:` section in the plan:
 Then add review tasks:
 - `TaskCreate(subject="Review phase 1: comprehensive", description="5 parallel review agents + fixer", activeForm="Running review phase 1...")`
 - `TaskCreate(subject="Review phase 2: code smells", description="smells agent + fixer", activeForm="Running smells review...")`
-- `TaskCreate(subject="Review phase 3: codex external", description="adversarial codex/claude review loop", activeForm="Running codex review...")`
-- `TaskCreate(subject="Review phase 4: critical only", description="2 review agents + fixer", activeForm="Running review phase 4...")`
+- `TaskCreate(subject="Review phase 3: critical only", description="2 review agents + fixer", activeForm="Running review phase 3...")`
 - `TaskCreate(subject="Finalize", description="rebase, clean up commits, verify", activeForm="Finalizing...")`
 
 Update tasks as you go: `TaskUpdate(taskId, status="in_progress")` when starting, `TaskUpdate(taskId, status="completed")` when done.
@@ -177,40 +176,13 @@ Run once (no loop):
 
 5. **After fixer returns** → report fixes to user. Proceed to the next phase.
 
-### Step 9. Review phase 3 — codex external review
+### Step 9. Review phase 3 — critical only
 
-Report to user: "--- Review phase 3: codex external review ---"
-
-Adversarial loop: codex reviews the code, fixer evaluates and fixes, codex re-reviews. Same fixer pattern as Claude reviews.
-
-Determine the external review command:
-- If `external_review_cmd` is set, use that command
-- Else check if codex is available: `which codex`
-- If neither is available, report "External review: skipped (no external tool available)" and proceed to step 10
-
-Loop up to `external_review_iterations` times (default: 10):
-
-1. **Resolve the codex prompt** — read `prompts/codex-review.md` through the override chain. Replace `DIFF_COMMAND` (iteration 1: `git diff DEFAULT_BRANCH...HEAD`, subsequent: `git diff`) and `PROGRESS_FILE_PATH`. The progress file contains all previous review findings and fixer responses — codex reads it to avoid re-reporting fixed issues.
-
-2. **Run codex** — `bash "$SKILL_DIR/scripts/run-codex.sh" "<resolved prompt>"` with `run_in_background: true`. You will be notified when done — do NOT poll or sleep.
-
-3. **Check codex output** — if codex reports "NO ISSUES FOUND" or equivalent, phase is done. Proceed to step 10.
-
-4. **Report codex findings to user** — show a compact list (one line per finding).
-
-5. **Spawn a fixer agent** — same as other review phases. Resolve `prompts/fixer.md`, pass codex output as FINDINGS_LIST. Fixer verifies, fixes, commits, reports FIXES.
-
-6. **Report fixer results to user** — show FIXES section. Log to progress file. Loop back to step 1.
-
-If `external_review_iterations` reached, report "Codex review: max iterations reached, moving on" and continue.
-
-### Step 10. Review phase 4 — critical only
-
-Report to user: "--- Review phase 4: critical/major only (single pass) ---"
+Report to user: "--- Review phase 3: critical/major only (single pass) ---"
 
 Same structure as step 7 but with `REVIEW_PHASE` set to `critical`. Resolve `prompts/review.md` through the override chain, spawn one review agent. The review agent launches 2 agents (quality, implementation) focusing on critical/major issues only. Same fixer flow — pass findings to fixer, show FIXES to user.
 
-### Step 11. Finalize
+### Step 10. Finalize
 
 Check `finalize_enabled` (default: true). If false, skip this step.
 
@@ -222,7 +194,7 @@ Spawn one Agent tool call with `mode: "bypassPermissions"`, `subagent_type: "gen
 
 This is best-effort — if rebase fails, report the issue but don't block completion.
 
-### Step 12. Completion
+### Step 11. Completion
 
 When finalize is done (or skipped on failure):
 - Log completion to progress file: `bash "$SKILL_DIR/scripts/append-progress.sh" <progress-file> "completed"`
