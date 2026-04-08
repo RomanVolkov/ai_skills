@@ -1,6 +1,6 @@
 ---
 name: plan-exec
-description: "Execute plan tasks sequentially using subagents. Use when user says 'exec', 'execute plan', 'run plan', or wants to implement a plan file task by task with isolated subagents."
+description: "Execute plan tasks sequentially with inline execution. Use when user says 'exec', 'execute plan', 'run plan', or wants to implement a plan file task by task."
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash(bash:*), AskUserQuestion, TaskCreate, TaskUpdate, EnterWorktree
 ---
 
@@ -35,7 +35,7 @@ The script checks project overrides, user overrides, and bundled defaults automa
 
 ### Placeholder Substitution
 
-After reading a prompt file, replace ALL placeholders with actual values before passing to a subagent. Subagents run in fresh contexts without plugin env vars.
+When reading prompt files for guidance, replace ALL placeholders with actual values for reference. Prompts serve as guidance for inline execution.
 
 Always substitute: `PLAN_FILE_PATH`, `PROGRESS_FILE_PATH`, `DEFAULT_BRANCH`, `TESTING_ENFORCED` (true/false based on plan), `${SKILL_DIR}` (resolve to actual absolute path), `RESOLVE_SCRIPT` (absolute path to `${SKILL_DIR}/scripts/resolve-file.sh`), and phase-specific values (`FINDINGS_LIST`, `REVIEW_PHASE`, `DIFF_COMMAND`).
 
@@ -163,7 +163,7 @@ Read the plan file. Count total Task sections (`### Task N:` or `### Iteration N
   - `Regular` or `Code-first` → `TESTING_ENFORCED=true`
   - `No tests` or `None` → `TESTING_ENFORCED=false`
 - If testing approach is not found in the plan, default to `TESTING_ENFORCED=true` (conservative - require tests)
-- Store this value to pass to task subagents
+- Store this value for use during task execution to enforce testing requirements
 
 **Determine the default branch** using this command (includes inline SKILL_DIR initialization):
 ```bash
@@ -426,19 +426,16 @@ When finalize is done (or skipped on failure):
 
 ## Key rules
 
-- Each subagent gets a fresh context — no accumulated state from previous tasks
-- Parent session only tracks: task number, success/failure, retry count
-- **Testing enforcement**: Detect testing approach from plan file (Step 1) and pass `TESTING_ENFORCED` to all task subagents:
-  - If `TESTING_ENFORCED=true`: subagent MUST write tests for every task and ensure all tests pass before marking task done
-  - If `TESTING_ENFORCED=false`: subagent may skip tests (but should still write them for non-trivial code)
-- Plan file is the single source of truth for progress — always re-read it
+- **Testing enforcement**: Detect testing approach from plan file (Step 1):
+  - If `TESTING_ENFORCED=true`: MUST write tests for every task and ensure all tests pass before marking task done
+  - If `TESTING_ENFORCED=false`: may skip tests (but should still write them for non-trivial code)
+- Plan file is the single source of truth for progress — always re-read it after each task
 - No signals — just checkboxes in the plan for task progress
 - Maintain progress file (`/tmp/progress-<plan-name>.txt`) — see `prompts/progress-file.md` for format and when to write
-- Do not modify the plan file yourself — only subagents modify it
-- Do not implement or fix code yourself — only subagents implement and fix
-- If a subagent fails or leaves broken code, re-run the loop — do NOT investigate or fix it yourself
+- **Modify the plan file** by updating checkboxes as tasks complete (mark `[ ]` → `[x]`)
+- **Implement code directly** using standard tools (Read, Write, Edit, Bash, etc.) during task execution
+- **Fix issues directly** when they arise during task execution — do not retry without investigation
 - NEVER dismiss findings as "pre-existing", "not from changes", or "architectural" — ALL findings are actionable
-- NEVER summarize or filter agent findings — pass the full output to the fixer agent verbatim
+- NEVER summarize or filter review findings — pass the full output to fixer for analysis
 - All prompt and agent files MUST be resolved through the three-layer override chain before use
-- All `subagent_type` values must be `general-purpose` — agent files provide the specialized prompt
-- After reading a prompt file, substitute all placeholders before passing to subagent (see Placeholder Substitution)
+- After reading a prompt file, substitute all placeholders for reference during inline execution (see Placeholder Substitution)
