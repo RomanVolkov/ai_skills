@@ -295,17 +295,30 @@ Repeat until no `[ ]` checkboxes remain in any Task section:
 
 6. **After task execution**, re-read the plan file and check if that task's checkboxes are now `[x]`
    - If yes — task succeeded, continue loop
-   - If no — **retry** the same task (up to `task_retries` times, default: 1)
-     - Check for errors/failures
+   - If no — **automatically attempt to fix and continue** (no user confirmation needed):
+     - Check for errors/failures from previous attempt
      - Fix issues directly using same tools
-     - If all retries fail, stop and report failure to user
-7. **Report to user**: "Task N completed" (one line)
+     - Run tests again to verify fixes
+     - If issue persists after `task_retries` attempts (default: 1):
+       - Mark task as failed with error details
+       - Move to next task automatically (do NOT stop the loop)
+       - Log failure and continue with next incomplete task
 
-**CRITICAL**: Do NOT stop the loop based on completion text. The ONLY stop condition is: no `[ ]` checkboxes remain in any Task section. Always re-read the plan file to verify.
+7. **Automatic continuation**: After each task (success or failure), automatically:
+   - Continue to the next incomplete task in the loop
+   - Do NOT wait for user confirmation
+   - Do NOT ask "should I continue?" — just continue
+   - Report task status to user and move forward
+
+8. **Report to user**: Brief status line per task (e.g., "Task N completed" or "Task N: attempted 2x, issues remain, moving to Task N+1")
+
+**CRITICAL**: Do NOT stop the loop based on completion text or to ask for confirmation. The ONLY stop condition is: no `[ ]` checkboxes remain in any Task section. Always re-read the plan file to verify.
 
 **CRITICAL**: All implementation work happens inline in this step using standard tools (Read, Write, Edit, Bash, Glob, Grep). No subagent spawning.
 
-Maximum iterations safety limit: 50. If reached, stop and report to user.
+**CRITICAL**: Automatic task continuation in OpenCode — do NOT pause between tasks waiting for user input. Process all tasks sequentially without interruption.
+
+Maximum iterations safety limit: 50 total iterations across all tasks. If reached, stop and report to user.
 
 ### Step 7. Review phase 1 — comprehensive (Sequential Inline Execution)
 
