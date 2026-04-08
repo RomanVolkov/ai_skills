@@ -1,16 +1,18 @@
-# AI Skills for Claude Code
+# AI Skills for Claude Code & OpenCode
 
-[![Claude Code](https://img.shields.io/badge/Built%20with-Claude%20Code-DA7857?logo=anthropic)](https://claude.ai/code)
-[![Claude Skills](https://img.shields.io/badge/Uses-Claude%20Skills-DA7857?logo=anthropic)](https://github.com/RomanVolkov/ai_skills)
+[![Uses Claude Code](https://img.shields.io/badge/Works%20with-Claude%20Code-DA7857?logo=anthropic)](https://claude.ai/code)
+[![Uses OpenCode](https://img.shields.io/badge/Works%20with-OpenCode-DA7857?logo=anthropic)](https://opencode.com/)
 [![GitHub](https://img.shields.io/badge/GitHub-RomanVolkov%2Fai_skills-blue?logo=github)](https://github.com/RomanVolkov/ai_skills)
 
-A collection of 15 powerful, production-ready Claude Code skills designed to enhance your software engineering workflow with AI-assisted planning, analysis, code review, and specialized task automation.
+A collection of powerful, production-ready AI skills for both **Claude Code** and **OpenCode**. Enhance your software engineering workflow with AI-assisted planning, analysis, code review, and specialized task automation.
 
 ## Overview
 
-This repository contains a curated set of Claude Code skills that extend Claude's capabilities for professional software engineering tasks. Each skill is purpose-built to tackle specific workflows—from systematic root cause analysis and structured planning to interactive code review and AI-assisted content generation.
+This repository contains a curated set of skills that extend Claude's capabilities for professional software engineering tasks. Each skill is purpose-built to tackle specific workflows—from systematic root cause analysis and structured planning to interactive code review and AI-assisted content generation.
 
 Whether you're debugging complex issues, designing implementation strategies, reviewing code changes, or building MCP servers, these skills provide specialized agents and workflows that make you a more efficient developer.
+
+**Works seamlessly with both Claude Code and OpenCode** — install once, use everywhere.
 
 ## Available Skills
 
@@ -54,19 +56,21 @@ git clone https://github.com/RomanVolkov/ai_skills.git
 cd ai_skills
 ```
 
-Run the installation script to copy skills to Claude Code:
+Run the installation script to copy skills to both Claude Code and OpenCode:
 
 ```bash
 ./install.sh
 ```
 
-This copies all skills to:
-- `~/.claude/skills/` (primary location)
-- `~/.config/opencode/skills/` (OpenCode compatibility)
+This installs all skills to:
+- `~/.claude/skills/` — For Claude Code users
+- `~/.config/opencode/skills/` — For OpenCode users
+
+The skills automatically detect which environment they're running in and use the appropriate installation.
 
 ### Using a Skill
 
-After installation, skills are available in Claude Code. Invoke them using the `/skill-name` format or through Claude's natural language understanding:
+After installation, skills are available in both Claude Code and OpenCode. Invoke them using the `/skill-name` format or through natural language understanding:
 
 ```bash
 /plan-make          # Create an implementation plan
@@ -116,45 +120,6 @@ Each skill in this collection:
 4. **Provides expert guidance** — Uses systematic methodologies (5-Why, Dialectic reasoning, etc.)
 5. **Integrates with Claude Code** — Works seamlessly with git, file operations, and editor integration
 
-## Skill Statistics
-
-| Metric | Count |
-|--------|-------|
-| Total Skills | 15 |
-| Planning Skills | 3 |
-| Analysis Skills | 5 |
-| Development Tools | 2 |
-| Content Generation | 2 |
-| Code Review Tools | 1 |
-| Specialized Utilities | 1 |
-
-## Reporting Issues
-
-Found a bug, have a suggestion, or want to improve a skill?
-
-[GitHub Issues](https://github.com/RomanVolkov/ai_skills/issues)
-
-When reporting issues, please include:
-
-- Which skill is affected
-- Description of the problem or suggestion
-- Steps to reproduce (for bugs)
-- Expected vs actual behavior
-- Your Claude Code version and environment
-
-## Contributing
-
-Contributions are welcome! To add a new skill or improve an existing one:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/new-skill`)
-3. Add or modify your skill following the existing structure
-4. Test thoroughly with Claude Code
-5. Commit and push your changes
-6. Open a pull request with a description of your skill
-
-For skill development guidance, see the `skill-creator` skill documentation.
-
 ## License
 
 This collection of skills is licensed under the MIT License. See individual skill directories for specific license information.
@@ -165,12 +130,11 @@ This collection of skills is licensed under the MIT License. See individual skil
 **Roman Volkov**
 
 - GitHub: [@RomanVolkov](https://github.com/RomanVolkov)
+- X (Twitter): [@romanvdev](https://x.com/romanvdev)
 - Repository: [RomanVolkov/ai_skills](https://github.com/RomanVolkov/ai_skills)
 
-Questions, feedback, or collaboration opportunities? Feel free to open an issue or reach out on GitHub.
+Questions, feedback, or collaboration opportunities? Feel free to reach out on GitHub or X.
 
 ---
 
-**Last updated:** 2026-04-08
-**Active Skills:** 15
 **Installation:** `./install.sh`
