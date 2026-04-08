@@ -31,20 +31,22 @@ Always substitute: `PLAN_FILE_PATH`, `PROGRESS_FILE_PATH`, `DEFAULT_BRANCH`, `TE
 
 ### Initialize SKILL_DIR
 
-Before any other steps, determine the skill directory location. The initialization detects whether running from Claude Code or OpenCode and uses the appropriate path:
+Before any other steps, determine the skill directory location. The initialization detects which environment is actually running the skill and uses that installation:
 
 ```bash
-# Detect which environment the skill is running in and find the correct installation
+# Detect which environment the skill is running FROM and use that installation
 SKILL_DIR=""
 
-# Priority 1: Check if Claude Code installation exists
-if [ -d "$HOME/.claude/skills/plan-exec" ]; then
-    SKILL_DIR="$HOME/.claude/skills/plan-exec"
+# Priority 1: Try to detect from actual running environment
+# Try Claude Code location first - if the script runs from there, we're in Claude Code
+if [ -f "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
+    SKILL_DIR=$(bash "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
 fi
 
-# Priority 2: Check if OpenCode installation exists (if Claude Code not found)
-if [ -z "$SKILL_DIR" ] && [ -d "$HOME/.config/opencode/skills/plan-exec" ]; then
-    SKILL_DIR="$HOME/.config/opencode/skills/plan-exec"
+# Priority 2: Try OpenCode location if Claude Code didn't work
+# If we're actually running from OpenCode, this script will be here
+if [ -z "$SKILL_DIR" ] && [ -f "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
+    SKILL_DIR=$(bash "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
 fi
 
 # Priority 3: Fallback to find command for other possible locations
@@ -69,9 +71,9 @@ export SKILL_DIR
 ```
 
 This initialization works with:
-- **Claude Code only**: Uses `~/.claude/skills/plan-exec`
-- **OpenCode only**: Uses `~/.config/opencode/skills/plan-exec`
-- **Both installed**: Prefers Claude Code (can be run from either)
+- **Claude Code only**: Detects and uses `~/.claude/skills/plan-exec`
+- **OpenCode only**: Detects and uses `~/.config/opencode/skills/plan-exec`
+- **Both installed**: Uses whichever environment is actually running the skill
 - **Development**: Works from source directory
 
 The `SKILL_DIR` should be used throughout all subsequent steps.
