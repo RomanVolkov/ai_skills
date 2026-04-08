@@ -14,10 +14,10 @@ Execute plan file tasks sequentially, each in an isolated subagent.
 
 ## File Resolution
 
-ALWAYS use the resolve script to read prompt and agent files. NEVER construct the override chain manually:
-```
-bash ${SKILL_DIR}/scripts/resolve-file.sh prompts/task.md
-bash ${SKILL_DIR}/scripts/resolve-file.sh agents/quality.txt
+ALWAYS use the resolve script to read prompt and agent files. NEVER construct the override chain manually. Make sure `SKILL_DIR` is set first (see "Initialize SKILL_DIR" section):
+```bash
+bash "$SKILL_DIR/scripts/resolve-file.sh" prompts/task.md
+bash "$SKILL_DIR/scripts/resolve-file.sh" agents/quality.txt
 ```
 The script checks project overrides, user overrides, and bundled defaults automatically.
 
@@ -29,13 +29,39 @@ Always substitute: `PLAN_FILE_PATH`, `PROGRESS_FILE_PATH`, `DEFAULT_BRANCH`, `${
 
 ## Process
 
+### Initialize SKILL_DIR
+
+Before any other steps, determine the skill directory location. This allows scripts to find themselves regardless of working directory or where the skill is installed:
+
+```bash
+# Find this skill's directory from wherever plan-exec is running
+# Works from ~/.claude/skills/plan-exec or ~/.config/opencode/skills/plan-exec or anywhere else
+SKILL_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd 2>/dev/null || echo "")
+if [ -z "$SKILL_DIR" ]; then
+    # Fallback: look for the skill in common locations
+    for location in ~/.claude/skills/plan-exec ~/.config/opencode/skills/plan-exec; do
+        if [ -d "$location" ]; then
+            SKILL_DIR="$location"
+            break
+        fi
+    done
+fi
+if [ -z "$SKILL_DIR" ]; then
+    echo "error: cannot locate plan-exec skill directory" >&2
+    exit 1
+fi
+export SKILL_DIR
+```
+
+This `SKILL_DIR` should be used throughout all subsequent steps.
+
 ### Step 1. Resolve plan file
 
 If `$ARGUMENTS` contains a file path, use it. Otherwise, list `.md` files in `docs/plans/`, excluding `completed/`. If exactly one plan found, use it automatically. If multiple found, ask the user to pick one using AskUserQuestion.
 
 Read the plan file. Count total Task sections (`### Task N:` or `### Iteration N:`) to know the scope.
 
-Determine the default branch: `bash ${SKILL_DIR}/scripts/detect-branch.sh`
+Determine the default branch: `bash "$SKILL_DIR/scripts/detect-branch.sh"`
 
 ### Step 2. Ask about worktree isolation
 
@@ -68,17 +94,17 @@ Update tasks as you go: `TaskUpdate(taskId, status="in_progress")` when starting
 
 **MANDATORY**: Run the script below. Do NOT create the branch manually — the script strips the date prefix from the plan filename (e.g., `20260329-feature-name.md` → branch `feature-name`).
 
-```
-bash ${SKILL_DIR}/scripts/create-branch.sh <plan-file-path>
+```bash
+bash "$SKILL_DIR/scripts/create-branch.sh" <plan-file-path>
 ```
 
 The script creates a feature branch if currently on main/master, or stays on the current branch if already on a feature branch. Capture and use the branch name it outputs.
 
 ### Step 5. Initialize progress file
 
-Initialize the progress file: `bash ${SKILL_DIR}/scripts/init-progress.sh /tmp/progress-<plan-name>.txt <plan-file-path> <branch-name>` (derive `<plan-name>` from the plan file stem, e.g., `fix-issues.md` → `progress-fix-issues`). The script creates the file with a header. Report the full progress file path to the user.
+Initialize the progress file: `bash "$SKILL_DIR/scripts/init-progress.sh" /tmp/progress-<plan-name>.txt <plan-file-path> <branch-name>` (derive `<plan-name>` from the plan file stem, e.g., `fix-issues.md` → `progress-fix-issues`). The script creates the file with a header. Report the full progress file path to the user.
 
-IMPORTANT: Always use `${SKILL_DIR}/scripts/append-progress.sh` to write to the progress file after initialization. Never write directly.
+IMPORTANT: Always use `bash "$SKILL_DIR/scripts/append-progress.sh"` to write to the progress file after initialization. Never write directly.
 
 ### Step 6. Task loop
 
@@ -122,8 +148,8 @@ Loop up to `review_iterations` times (default: 5):
 1. **Spawn a review agent** — resolve `prompts/review.md` through the override chain. Launch one Agent tool call with `mode: "bypassPermissions"`, `subagent_type: "general-purpose"`, and the resolved prompt with `REVIEW_PHASE` set to `comprehensive`. Replace `DEFAULT_BRANCH`, `PLAN_FILE_PATH`, `PROGRESS_FILE_PATH`, and `${SKILL_DIR}`. The review agent launches 5 agents in parallel, collects findings, and reports back.
 
 2. **Collect findings** — pass the review agent's COMPLETE output (not a summary) to the fixer. Do NOT summarize, filter, or dismiss any findings. ALL findings are actionable. Report to user with a short list of findings. Log to progress file:
-   `bash ${SKILL_DIR}/scripts/append-progress.sh <progress-file> "review phase 1: findings"`
-   Then pipe: `echo "<findings>" | bash ${SKILL_DIR}/scripts/append-progress.sh <progress-file>`
+   `bash "$SKILL_DIR/scripts/append-progress.sh" <progress-file> "review phase 1: findings"`
+   Then pipe: `echo "<findings>" | bash "$SKILL_DIR/scripts/append-progress.sh" <progress-file>`
 
 3. **If ALL agents reported zero issues** → report "Review phase 1: clean" and proceed to the next phase.
 
@@ -142,8 +168,8 @@ Run once (no loop):
 1. **Spawn a smells agent** — resolve `agents/smells.txt` through the override chain. Launch one Agent tool call with `mode: "bypassPermissions"`, `subagent_type: "general-purpose"`, and the resolved agent prompt.
 
 2. **Collect findings** — after the agent returns, report to user with a compact list of findings (one line per finding). Log findings to progress file:
-   `bash ${SKILL_DIR}/scripts/append-progress.sh <progress-file> "review phase 2 smells: findings"`
-   Then pipe the findings: `echo "<findings>" | bash ${SKILL_DIR}/scripts/append-progress.sh <progress-file>`
+   `bash "$SKILL_DIR/scripts/append-progress.sh" <progress-file> "review phase 2 smells: findings"`
+   Then pipe the findings: `echo "<findings>" | bash "$SKILL_DIR/scripts/append-progress.sh" <progress-file>`
 
 3. **If no issues found** → report "Smells analysis: clean" and proceed to the next phase.
 
@@ -166,7 +192,7 @@ Loop up to `external_review_iterations` times (default: 10):
 
 1. **Resolve the codex prompt** — read `prompts/codex-review.md` through the override chain. Replace `DIFF_COMMAND` (iteration 1: `git diff DEFAULT_BRANCH...HEAD`, subsequent: `git diff`) and `PROGRESS_FILE_PATH`. The progress file contains all previous review findings and fixer responses — codex reads it to avoid re-reporting fixed issues.
 
-2. **Run codex** — `bash ${SKILL_DIR}/scripts/run-codex.sh "<resolved prompt>"` with `run_in_background: true`. You will be notified when done — do NOT poll or sleep.
+2. **Run codex** — `bash "$SKILL_DIR/scripts/run-codex.sh" "<resolved prompt>"` with `run_in_background: true`. You will be notified when done — do NOT poll or sleep.
 
 3. **Check codex output** — if codex reports "NO ISSUES FOUND" or equivalent, phase is done. Proceed to step 10.
 
@@ -199,7 +225,7 @@ This is best-effort — if rebase fails, report the issue but don't block comple
 ### Step 12. Completion
 
 When finalize is done (or skipped on failure):
-- Log completion to progress file: `bash ${SKILL_DIR}/scripts/append-progress.sh <progress-file> "completed"`
+- Log completion to progress file: `bash "$SKILL_DIR/scripts/append-progress.sh" <progress-file> "completed"`
 - Report summary: "All N tasks completed, reviews passed, branch finalized"
 - Do NOT move the plan file or push — just report completion
 
