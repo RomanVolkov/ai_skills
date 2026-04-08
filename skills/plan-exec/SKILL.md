@@ -31,27 +31,43 @@ Always substitute: `PLAN_FILE_PATH`, `PROGRESS_FILE_PATH`, `DEFAULT_BRANCH`, `TE
 
 ### Step 0: Initialize SKILL_DIR (MUST RUN FIRST)
 
-**BEFORE ANY OTHER STEPS**, execute this initialization command using the Bash tool to set up the SKILL_DIR environment variable. This detects which environment (Claude Code or OpenCode) is running the skill:
+**BEFORE ANY OTHER STEPS**, execute this initialization command using the Bash tool to set up the SKILL_DIR environment variable. This detects which environment (Claude Code or OpenCode) is running the skill.
+
+After running the initialization, **print the result to the user** (show SKILL_DIR value and environment detected) before proceeding to Step 1:
 
 ```bash
 # Detect which environment is running this skill
 # Check for OpenCode-specific environment variables or paths
 SKILL_DIR=""
+ENV_NAME=""
 
 # Priority 1: Detect OpenCode environment
 # OpenCode sets OPENCODE_HOME or paths in ~/.config/opencode/
 if [ -f "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
     SKILL_DIR=$(bash "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
+    if [ -n "$SKILL_DIR" ]; then
+        ENV_NAME="OpenCode"
+    fi
 fi
 
 # Priority 2: Try Claude Code location if OpenCode not found
 if [ -z "$SKILL_DIR" ] && [ -f "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
     SKILL_DIR=$(bash "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
+    if [ -n "$SKILL_DIR" ]; then
+        ENV_NAME="Claude Code"
+    fi
 fi
 
 # Priority 3: Fallback search
 if [ -z "$SKILL_DIR" ]; then
     SKILL_DIR=$(find "$HOME/.claude/skills" "$HOME/.config/opencode/skills" -maxdepth 1 -name "plan-exec" -type d 2>/dev/null | head -1)
+    if [ -n "$SKILL_DIR" ]; then
+        if [[ "$SKILL_DIR" == *"opencode"* ]]; then
+            ENV_NAME="OpenCode (fallback)"
+        else
+            ENV_NAME="Claude Code (fallback)"
+        fi
+    fi
 fi
 
 # Priority 4: Direct invocation fallback
@@ -59,6 +75,7 @@ if [ -z "$SKILL_DIR" ]; then
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd 2>/dev/null)"
     if [ -f "$SCRIPT_DIR/SKILL.md" ]; then
         SKILL_DIR="$SCRIPT_DIR"
+        ENV_NAME="Direct invocation"
     fi
 fi
 
@@ -68,7 +85,12 @@ if [ -z "$SKILL_DIR" ]; then
     exit 1
 fi
 
-echo "SKILL_DIR=$SKILL_DIR"
+# Print result to user BEFORE proceeding to next step
+echo ""
+echo "✓ SKILL_DIR initialization successful"
+echo "  Environment: $ENV_NAME"
+echo "  Path: $SKILL_DIR"
+echo ""
 export SKILL_DIR
 ```
 
