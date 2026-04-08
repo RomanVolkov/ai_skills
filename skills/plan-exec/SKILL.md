@@ -76,6 +76,29 @@ After running this, SKILL_DIR will be set and available for all subsequent comma
 
 ---
 
+### Script Invocation Pattern
+
+**CRITICAL**: Every bash script invocation in this skill MUST include inline SKILL_DIR initialization. Environment variables do not persist between separate bash tool calls.
+
+Use this pattern for ANY script invocation:
+
+```bash
+# Initialize SKILL_DIR (inline) - required before each script call
+SKILL_DIR=""
+if [ -f "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
+    SKILL_DIR=$(bash "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
+fi
+if [ -z "$SKILL_DIR" ] && [ -f "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
+    SKILL_DIR=$(bash "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
+fi
+if [ -z "$SKILL_DIR" ]; then
+    SKILL_DIR=$(find "$HOME/.claude/skills" "$HOME/.config/opencode/skills" -maxdepth 1 -name "plan-exec" -type d 2>/dev/null | head -1)
+fi
+
+# Then invoke your script
+bash "$SKILL_DIR/scripts/SCRIPT_NAME" arguments...
+```
+
 ### How SKILL_DIR Detection Works
 
 The initialization prioritizes OpenCode (since many users run only OpenCode) and falls back to Claude Code:
@@ -84,8 +107,6 @@ The initialization prioritizes OpenCode (since many users run only OpenCode) and
 2. **Claude Code second**: Checks if `~/.claude/skills/plan-exec/scripts/get-skill-dir.sh` exists and uses it
 3. **Find fallback**: Searches for plan-exec in standard installation directories
 4. **Direct invocation**: If SKILL.md exists in current directory, uses that as the skill root
-
-Once `SKILL_DIR` is set and exported, all subsequent script invocations use it: `bash "$SKILL_DIR/scripts/detect-branch.sh"`, etc.
 
 ### Step 1. Resolve plan file
 
@@ -101,7 +122,23 @@ Read the plan file. Count total Task sections (`### Task N:` or `### Iteration N
 - If testing approach is not found in the plan, default to `TESTING_ENFORCED=true` (conservative - require tests)
 - Store this value to pass to task subagents
 
-Determine the default branch: `bash "$SKILL_DIR/scripts/detect-branch.sh"`
+**Determine the default branch** using this command (includes inline SKILL_DIR initialization):
+```bash
+# Initialize SKILL_DIR (inline)
+SKILL_DIR=""
+if [ -f "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
+    SKILL_DIR=$(bash "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
+fi
+if [ -z "$SKILL_DIR" ] && [ -f "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
+    SKILL_DIR=$(bash "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
+fi
+if [ -z "$SKILL_DIR" ]; then
+    SKILL_DIR=$(find "$HOME/.claude/skills" "$HOME/.config/opencode/skills" -maxdepth 1 -name "plan-exec" -type d 2>/dev/null | head -1)
+fi
+
+# Now detect branch
+bash "$SKILL_DIR/scripts/detect-branch.sh"
+```
 
 ### Step 2. Ask about worktree isolation
 
@@ -131,9 +168,22 @@ Update tasks as you go: `TaskUpdate(taskId, status="in_progress")` when starting
 
 ### Step 4. Create branch
 
-**MANDATORY**: Run the script below. Do NOT create the branch manually — the script strips the date prefix from the plan filename (e.g., `20260329-feature-name.md` → branch `feature-name`).
+**MANDATORY**: Run the script below (includes inline SKILL_DIR initialization). Do NOT create the branch manually — the script strips the date prefix from the plan filename (e.g., `20260329-feature-name.md` → branch `feature-name`).
 
 ```bash
+# Initialize SKILL_DIR (inline)
+SKILL_DIR=""
+if [ -f "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
+    SKILL_DIR=$(bash "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
+fi
+if [ -z "$SKILL_DIR" ] && [ -f "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
+    SKILL_DIR=$(bash "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
+fi
+if [ -z "$SKILL_DIR" ]; then
+    SKILL_DIR=$(find "$HOME/.claude/skills" "$HOME/.config/opencode/skills" -maxdepth 1 -name "plan-exec" -type d 2>/dev/null | head -1)
+fi
+
+# Create branch (replace <plan-file-path> with actual path)
 bash "$SKILL_DIR/scripts/create-branch.sh" <plan-file-path>
 ```
 
@@ -141,9 +191,28 @@ The script creates a feature branch if currently on main/master, or stays on the
 
 ### Step 5. Initialize progress file
 
-Initialize the progress file: `bash "$SKILL_DIR/scripts/init-progress.sh" /tmp/progress-<plan-name>.txt <plan-file-path> <branch-name>` (derive `<plan-name>` from the plan file stem, e.g., `fix-issues.md` → `progress-fix-issues`). The script creates the file with a header. Report the full progress file path to the user.
+Initialize the progress file using this command (includes inline SKILL_DIR initialization):
 
-IMPORTANT: Always use `bash "$SKILL_DIR/scripts/append-progress.sh"` to write to the progress file after initialization. Never write directly.
+```bash
+# Initialize SKILL_DIR (inline)
+SKILL_DIR=""
+if [ -f "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
+    SKILL_DIR=$(bash "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
+fi
+if [ -z "$SKILL_DIR" ] && [ -f "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
+    SKILL_DIR=$(bash "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
+fi
+if [ -z "$SKILL_DIR" ]; then
+    SKILL_DIR=$(find "$HOME/.claude/skills" "$HOME/.config/opencode/skills" -maxdepth 1 -name "plan-exec" -type d 2>/dev/null | head -1)
+fi
+
+# Initialize progress file (replace <plan-name>, <plan-file-path>, <branch-name> with actual values)
+bash "$SKILL_DIR/scripts/init-progress.sh" /tmp/progress-<plan-name>.txt <plan-file-path> <branch-name>
+```
+
+Derive `<plan-name>` from the plan file stem (e.g., `fix-issues.md` → `progress-fix-issues`). The script creates the file with a header. Report the full progress file path to the user.
+
+**IMPORTANT**: Always use the inline SKILL_DIR initialization before calling `bash "$SKILL_DIR/scripts/append-progress.sh"` to write to the progress file. Never write directly.
 
 ### Step 6. Task loop
 
