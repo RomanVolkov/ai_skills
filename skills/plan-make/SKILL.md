@@ -134,14 +134,15 @@ check `docs/plans/` for existing files, then create `docs/plans/yyyymmdd-<task-n
 - **testing approach**: [TDD / Regular / No tests - from user preference in planning]
 - complete each task fully before moving to the next
 - make small, focused changes
-- **CRITICAL: every task MUST include new/updated tests** for code changes in that task
-  - tests only optional for simple implementations and scafolding. In other cases - try to force user to use them and be a part if the checklist
-  - write unit tests for new functions/methods
-  - write unit tests for modified functions/methods
-  - add new test cases for new code paths
-  - update existing test cases if behavior changes
-  - tests cover both success and error scenarios
-- **CRITICAL: all tests must pass before starting next task** - if tests requirement is present
+- **Testing enforcement**:
+  - If testing approach is "TDD" or "Regular": **EVERY task MUST include tests** for code changes
+  - If testing approach is "No tests": tests are optional (skip if user explicitly requested)
+  - Write unit tests for new functions/methods
+  - Write unit tests for modified functions/methods
+  - Add new test cases for new code paths
+  - Update existing test cases if behavior changes
+  - Tests cover both success and error scenarios
+- **CRITICAL: all tests must pass before starting next task** - only when tests are required
 - **CRITICAL: update this plan file when scope changes during implementation**
 - run tests after each change - when required
 - maintain backward compatibility

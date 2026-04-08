@@ -25,7 +25,7 @@ The script checks project overrides, user overrides, and bundled defaults automa
 
 After reading a prompt file, replace ALL placeholders with actual values before passing to a subagent. Subagents run in fresh contexts without plugin env vars.
 
-Always substitute: `PLAN_FILE_PATH`, `PROGRESS_FILE_PATH`, `DEFAULT_BRANCH`, `${SKILL_DIR}` (resolve to actual absolute path), `RESOLVE_SCRIPT` (absolute path to `${SKILL_DIR}/scripts/resolve-file.sh`), and phase-specific values (`FINDINGS_LIST`, `REVIEW_PHASE`, `DIFF_COMMAND`).
+Always substitute: `PLAN_FILE_PATH`, `PROGRESS_FILE_PATH`, `DEFAULT_BRANCH`, `TESTING_ENFORCED` (true/false based on plan), `${SKILL_DIR}` (resolve to actual absolute path), `RESOLVE_SCRIPT` (absolute path to `${SKILL_DIR}/scripts/resolve-file.sh`), and phase-specific values (`FINDINGS_LIST`, `REVIEW_PHASE`, `DIFF_COMMAND`).
 
 ## Process
 
@@ -60,6 +60,14 @@ This `SKILL_DIR` should be used throughout all subsequent steps.
 If `$ARGUMENTS` contains a file path, use it. Otherwise, list `.md` files in `docs/plans/`, excluding `completed/`. If exactly one plan found, use it automatically. If multiple found, ask the user to pick one using AskUserQuestion.
 
 Read the plan file. Count total Task sections (`### Task N:` or `### Iteration N:`) to know the scope.
+
+**Extract testing approach** from the plan's "Development Approach" section:
+- Look for `testing approach:` line containing one of:
+  - `TDD` or `Test-Driven Development` → `TESTING_ENFORCED=true`
+  - `Regular` or `Code-first` → `TESTING_ENFORCED=true`
+  - `No tests` or `None` → `TESTING_ENFORCED=false`
+- If testing approach is not found in the plan, default to `TESTING_ENFORCED=true` (conservative - require tests)
+- Store this value to pass to task subagents
 
 Determine the default branch: `bash "$SKILL_DIR/scripts/detect-branch.sh"`
 
@@ -124,7 +132,12 @@ Repeat until no `[ ]` checkboxes remain in any Task section:
 5. **Spawn a subagent** using Agent tool with:
    - `mode: "bypassPermissions"`
    - `subagent_type: "general-purpose"`
-   - The task prompt from `prompts/task.md`, with `PLAN_FILE_PATH` and `PROGRESS_FILE_PATH` replaced by actual paths
+   - The task prompt from `prompts/task.md`, with ALL placeholders replaced:
+     - `PLAN_FILE_PATH` → actual path
+     - `PROGRESS_FILE_PATH` → actual path
+     - `TESTING_ENFORCED` → "true" if tests are required, "false" if optional
+     - `DEFAULT_BRANCH` → the detected default branch
+     - `SKILL_DIR` → absolute path to skill directory
 6. **After subagent returns**, re-read the plan file and check if that task's checkboxes are now `[x]`
    - If yes — task succeeded, continue loop
    - If no — **retry** with a fresh subagent for the same task up to `task_retries` times (default: 1). If all retries fail, stop and report failure to user
@@ -205,6 +218,9 @@ When finalize is done (or skipped on failure):
 
 - Each subagent gets a fresh context — no accumulated state from previous tasks
 - Parent session only tracks: task number, success/failure, retry count
+- **Testing enforcement**: Detect testing approach from plan file (Step 1) and pass `TESTING_ENFORCED` to all task subagents:
+  - If `TESTING_ENFORCED=true`: subagent MUST write tests for every task and ensure all tests pass before marking task done
+  - If `TESTING_ENFORCED=false`: subagent may skip tests (but should still write them for non-trivial code)
 - Plan file is the single source of truth for progress — always re-read it
 - No signals — just checkboxes in the plan for task progress
 - Maintain progress file (`/tmp/progress-<plan-name>.txt`) — see `prompts/progress-file.md` for format and when to write
