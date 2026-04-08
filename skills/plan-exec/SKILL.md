@@ -34,14 +34,19 @@ Always substitute: `PLAN_FILE_PATH`, `PROGRESS_FILE_PATH`, `DEFAULT_BRANCH`, `TE
 **BEFORE ANY OTHER STEPS**, execute this initialization command using the Bash tool to set up the SKILL_DIR environment variable. This detects which environment (Claude Code or OpenCode) is running the skill:
 
 ```bash
-# Priority 1: Try Claude Code location
-if [ -f "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
-    SKILL_DIR=$(bash "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
+# Detect which environment is running this skill
+# Check for OpenCode-specific environment variables or paths
+SKILL_DIR=""
+
+# Priority 1: Detect OpenCode environment
+# OpenCode sets OPENCODE_HOME or paths in ~/.config/opencode/
+if [ -f "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
+    SKILL_DIR=$(bash "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
 fi
 
-# Priority 2: Try OpenCode location if Claude Code not found
-if [ -z "$SKILL_DIR" ] && [ -f "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
-    SKILL_DIR=$(bash "$HOME/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
+# Priority 2: Try Claude Code location if OpenCode not found
+if [ -z "$SKILL_DIR" ] && [ -f "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" ]; then
+    SKILL_DIR=$(bash "$HOME/.claude/skills/plan-exec/scripts/get-skill-dir.sh" 2>/dev/null)
 fi
 
 # Priority 3: Fallback search
@@ -73,10 +78,10 @@ After running this, SKILL_DIR will be set and available for all subsequent comma
 
 ### How SKILL_DIR Detection Works
 
-The initialization runs through priorities in order:
+The initialization prioritizes OpenCode (since many users run only OpenCode) and falls back to Claude Code:
 
-1. **Claude Code**: Checks if `~/.claude/skills/plan-exec/scripts/get-skill-dir.sh` exists and uses it
-2. **OpenCode**: Checks if `~/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh` exists and uses it
+1. **OpenCode first**: Checks if `~/.config/opencode/skills/plan-exec/scripts/get-skill-dir.sh` exists and uses it
+2. **Claude Code second**: Checks if `~/.claude/skills/plan-exec/scripts/get-skill-dir.sh` exists and uses it
 3. **Find fallback**: Searches for plan-exec in standard installation directories
 4. **Direct invocation**: If SKILL.md exists in current directory, uses that as the skill root
 
