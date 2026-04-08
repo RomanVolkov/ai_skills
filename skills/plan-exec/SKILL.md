@@ -31,38 +31,50 @@ Always substitute: `PLAN_FILE_PATH`, `PROGRESS_FILE_PATH`, `DEFAULT_BRANCH`, `TE
 
 ### Initialize SKILL_DIR
 
-Before any other steps, determine the skill directory location. This initialization works reliably in both Claude Code and OpenCode:
+Before any other steps, determine the skill directory location. The initialization detects whether running from Claude Code or OpenCode and uses the appropriate path:
 
 ```bash
-# Method 1: Try common installation locations (fastest, works in OpenCode)
-for location in ~/.claude/skills/plan-exec ~/.config/opencode/skills/plan-exec; do
-    if [ -d "$location" ]; then
-        SKILL_DIR="$location"
-        break
-    fi
-done
+# Detect which environment the skill is running in and find the correct installation
+SKILL_DIR=""
 
-# Method 2: Search for plan-exec skill in standard locations
-if [ -z "$SKILL_DIR" ]; then
-    SKILL_DIR=$(find ~/.claude/skills ~/.config/opencode/skills -maxdepth 1 -name "plan-exec" -type d 2>/dev/null | head -1)
+# Priority 1: Check if Claude Code installation exists
+if [ -d "$HOME/.claude/skills/plan-exec" ]; then
+    SKILL_DIR="$HOME/.claude/skills/plan-exec"
 fi
 
-# Method 3: Fallback from script location (if running as a standalone script)
+# Priority 2: Check if OpenCode installation exists (if Claude Code not found)
+if [ -z "$SKILL_DIR" ] && [ -d "$HOME/.config/opencode/skills/plan-exec" ]; then
+    SKILL_DIR="$HOME/.config/opencode/skills/plan-exec"
+fi
+
+# Priority 3: Fallback to find command for other possible locations
+if [ -z "$SKILL_DIR" ]; then
+    SKILL_DIR=$(find "$HOME/.claude/skills" "$HOME/.config/opencode/skills" -maxdepth 1 -name "plan-exec" -type d 2>/dev/null | head -1)
+fi
+
+# Priority 4: If running from the skill directory directly (development/manual invocation)
 if [ -z "$SKILL_DIR" ]; then
     SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd 2>/dev/null)"
-    if [ -d "$SCRIPT_DIR/scripts" ]; then
+    if [ -f "$SCRIPT_DIR/SKILL.md" ]; then
         SKILL_DIR="$SCRIPT_DIR"
     fi
 fi
 
 if [ -z "$SKILL_DIR" ]; then
     echo "error: cannot locate plan-exec skill directory" >&2
+    echo "hint: install with: ./install.sh" >&2
     exit 1
 fi
 export SKILL_DIR
 ```
 
-This `SKILL_DIR` should be used throughout all subsequent steps.
+This initialization works with:
+- **Claude Code only**: Uses `~/.claude/skills/plan-exec`
+- **OpenCode only**: Uses `~/.config/opencode/skills/plan-exec`
+- **Both installed**: Prefers Claude Code (can be run from either)
+- **Development**: Works from source directory
+
+The `SKILL_DIR` should be used throughout all subsequent steps.
 
 ### Step 1. Resolve plan file
 
