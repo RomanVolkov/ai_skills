@@ -20,7 +20,7 @@ before asking questions, understand what the user is working on:
    - "migrate to Z" / "upgrade W" → migration plan
    - generic request → explore current work
 
-2. **launch Explore agent** to gather relevant context based on intent:
+2. **gather context** using code exploration based on intent:
 
    **for feature development:**
    - locate related existing code and patterns
@@ -284,7 +284,7 @@ then use AskUserQuestion:
   3. run `python3 ${SKILL_DIR}/scripts/plan-annotate.py <plan-file-path>` again
   4. repeat until no diff output (user closed editor without changes)
   when the annotation loop completes, ask again with the remaining options (minus "Interactive review")
-- **Auto review**: launch plan-review agent (Task tool with subagent_type=plan-review). After review completes, ask again with the same options (minus "Auto review")
+- **Auto review**: launch plan-review skill using `claude ask` or invoke plan-review directly. After review completes, ask again with the same options (minus "Auto review")
 - **Start implementation**: commit plan with message like "docs: add <topic> implementation plan", then begin implementing task 1 interactively in this session
 - **Execute autonomously**: commit plan, then invoke `/plan-exec <plan-file-path>` for autonomous execution with multi-phase review
 - **Done**: commit plan with message like "docs: add <topic> implementation plan", stop

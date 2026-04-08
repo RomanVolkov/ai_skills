@@ -1,7 +1,7 @@
 ---
 name: plan-exec
 description: "Execute plan tasks sequentially using subagents. Use when user says 'exec', 'execute plan', 'run plan', or wants to implement a plan file task by task with isolated subagents."
-allowed-tools: Read, Write, Edit, Glob, Grep, Bash(bash:*), Agent, AskUserQuestion, TaskCreate, TaskUpdate, EnterWorktree
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash(bash:*), AskUserQuestion, TaskCreate, TaskUpdate, EnterWorktree
 ---
 
 # plan-exec
@@ -245,14 +245,14 @@ Derive `<plan-name>` from the plan file stem (e.g., `fix-issues.md` → `progres
 
 **IMPORTANT**: Always use the inline SKILL_DIR initialization before calling `bash "$SKILL_DIR/scripts/append-progress.sh"` to write to the progress file. Never write directly.
 
-### Step 6. Task loop
+### Step 6. Task loop (Sequential Inline Execution)
 
 Repeat until no `[ ]` checkboxes remain in any Task section:
 
-1. **Re-read the plan file** (subagent modifies it each iteration)
+1. **Re-read the plan file** to check current state
 2. **Find the first Task section** (`### Task N:` or `### Iteration N:`) that still has `[ ]` checkboxes
 3. **If none found** — all tasks complete, go to step 7
-4. **Announce the task to the user** — before spawning the subagent, output a visible summary:
+4. **Announce the task to the user** — output a visible summary:
    - Task number and title (from the `### Task N:` header)
    - List all `[ ]` checkbox items in that task section
    - Example output:
@@ -261,27 +261,41 @@ Repeat until no `[ ]` checkboxes remain in any Task section:
      - [ ] Handle the error from os.ReadFile
      - [ ] Either log and exit or handle gracefully
      ```
-5. **Spawn a subagent** using Agent tool with:
-   - `mode: "bypassPermissions"`
-   - `subagent_type: "general-purpose"`
-   - The task prompt from `prompts/task.md`, with ALL placeholders replaced:
+5. **Execute task inline** (no subagent spawning):
+   - Resolve `prompts/task.md` from override chain (use `bash "$SKILL_DIR/scripts/resolve-file.sh" prompts/task.md`)
+   - Read the task prompt for guidance
+   - Extract task implementation details from plan file
+   - Use standard tools to implement the task:
+     - `Read` — read code files
+     - `Write`/`Edit` — modify/create files
+     - `Bash` — run commands, tests
+     - `Glob`/`Grep` — search code
+   - Follow ALL placeholder substitutions from the resolved prompt:
      - `PLAN_FILE_PATH` → actual path
      - `PROGRESS_FILE_PATH` → actual path
-     - `TESTING_ENFORCED` → "true" if tests are required, "false" if optional
-     - `DEFAULT_BRANCH` → the detected default branch
-     - `SKILL_DIR` → absolute path to skill directory
-6. **After subagent returns**, re-read the plan file and check if that task's checkboxes are now `[x]`
+     - `TESTING_ENFORCED` → "true" or "false"
+     - `DEFAULT_BRANCH` → detected branch
+     - `${SKILL_DIR}` → absolute path
+   - Write/update tests as required by plan
+   - Run tests via bash: `bash test_command`
+   - Commit changes via bash
+   - Log progress: `bash "$SKILL_DIR/scripts/append-progress.sh" <progress-file> "Task N completed"`
+
+6. **After task execution**, re-read the plan file and check if that task's checkboxes are now `[x]`
    - If yes — task succeeded, continue loop
-   - If no — **retry** with a fresh subagent for the same task up to `task_retries` times (default: 1). If all retries fail, stop and report failure to user
-7. **Report to user**: "Task N completed" (one line). The task subagent logs details to the progress file.
+   - If no — **retry** the same task (up to `task_retries` times, default: 1)
+     - Check for errors/failures
+     - Fix issues directly using same tools
+     - If all retries fail, stop and report failure to user
+7. **Report to user**: "Task N completed" (one line)
 
-CRITICAL: Do NOT stop the loop based on subagent return text. The ONLY condition to stop is: no `[ ]` checkboxes remain in any Task section (`### Task N:` or `### Iteration N:`). Always re-read the plan file to check.
+**CRITICAL**: Do NOT stop the loop based on completion text. The ONLY stop condition is: no `[ ]` checkboxes remain in any Task section. Always re-read the plan file to verify.
 
-CRITICAL: You are the ORCHESTRATOR. Never read code, debug errors, investigate diagnostics, or fix issues yourself. If a subagent leaves problems (compiler errors, test failures, lint issues), retry with a fresh subagent — pass the error details in the prompt so it can fix them. All code work happens inside subagents, not in the orchestrator.
+**CRITICAL**: All implementation work happens inline in this step using standard tools (Read, Write, Edit, Bash, Glob, Grep). No subagent spawning.
 
 Maximum iterations safety limit: 50. If reached, stop and report to user.
 
-### Step 7. Review phase 1 — comprehensive
+### Step 7. Review phase 1 — comprehensive (Sequential Inline Execution)
 
 After all tasks complete, run a comprehensive code review.
 
@@ -289,45 +303,90 @@ Report to user: "--- Review phase 1: comprehensive ---"
 
 Loop up to `review_iterations` times (default: 5):
 
-1. **Spawn a review agent** — resolve `prompts/review.md` through the override chain. Launch one Agent tool call with `mode: "bypassPermissions"`, `subagent_type: "general-purpose"`, and the resolved prompt with `REVIEW_PHASE` set to `comprehensive`. Replace `DEFAULT_BRANCH`, `PLAN_FILE_PATH`, `PROGRESS_FILE_PATH`, and `${SKILL_DIR}`. The review agent launches 5 agents in parallel, collects findings, and reports back.
+1. **Execute review inline** (no subagent spawning):
+   - Resolve `prompts/review.md` from override chain (use resolve-file.sh)
+   - Read the review prompt for guidance
+   - Execute review analysis for each review type:
+     - Resolve `agents/quality.txt` — analyze for bugs, security, quality issues
+     - Resolve `agents/implementation.txt` — analyze for requirement coverage
+     - Resolve `agents/testing.txt` — analyze for test coverage gaps
+     - Resolve `agents/simplification.txt` — detect over-engineering
+     - Resolve `agents/documentation.txt` — find missing docs
+   - Collect ALL findings from each review type with file:line references
+   - Deduplicate findings (same file:line + same issue = merge)
+   - Report findings to user with compact list
 
-2. **Collect findings** — pass the review agent's COMPLETE output (not a summary) to the fixer. Do NOT summarize, filter, or dismiss any findings. ALL findings are actionable. Report to user with a short list of findings. Log to progress file:
-   `bash "$SKILL_DIR/scripts/append-progress.sh" <progress-file> "review phase 1: findings"`
-   Then pipe: `echo "<findings>" | bash "$SKILL_DIR/scripts/append-progress.sh" <progress-file>`
+2. **If no findings found** → report "Review phase 1: clean" and proceed to step 8
 
-3. **If ALL agents reported zero issues** → report "Review phase 1: clean" and proceed to the next phase.
+3. **Execute fixer inline** (no subagent spawning):
+   - Resolve `prompts/fixer.md` from override chain
+   - Read the fixer prompt for guidance
+   - Analyze ALL collected findings (do NOT filter or summarize)
+   - For each finding:
+     - Verify it's real (not false positive)
+     - If confirmed, fix it directly using standard tools (Read, Write, Edit, Bash)
+     - If not confirmed, skip it
+   - Run tests to verify fixes don't break anything
+   - Commit fixes
+   - Log iteration results to progress file
 
-4. **Spawn a fixer agent** — resolve `prompts/fixer.md` through the override chain. Launch with `mode: "bypassPermissions"`, `subagent_type: "general-purpose"`. Pass the FULL unedited review output as FINDINGS_LIST — the fixer decides what's real, not you.
-
-5. **After fixer returns** → show the "FIXES:" section to the user. Report "Review phase 1: iteration N fixes applied". Loop back to step 1.
+4. **Loop** — re-run review analysis and repeat until no findings or max iterations reached
 
 If `review_iterations` reached with issues still found, report "Review phase 1: max iterations reached, moving on" and continue.
 
-### Step 8. Review phase 2 — code smells
+### Step 8. Review phase 2 — code smells (Sequential Inline Execution)
 
 Report to user: "--- Review phase 2: code smells analysis ---"
 
 Run once (no loop):
 
-1. **Spawn a smells agent** — resolve `agents/smells.txt` through the override chain. Launch one Agent tool call with `mode: "bypassPermissions"`, `subagent_type: "general-purpose"`, and the resolved agent prompt.
+1. **Execute smells analysis inline**:
+   - Resolve `agents/smells.txt` from override chain
+   - Read the agent prompt for guidance
+   - Analyze code for smells (duplication, complexity, anti-patterns, etc.)
+   - Collect smells findings with file:line references
+   - Report findings to user
 
-2. **Collect findings** — after the agent returns, report to user with a compact list of findings (one line per finding). Log findings to progress file:
-   `bash "$SKILL_DIR/scripts/append-progress.sh" <progress-file> "review phase 2 smells: findings"`
-   Then pipe the findings: `echo "<findings>" | bash "$SKILL_DIR/scripts/append-progress.sh" <progress-file>`
+2. **If no findings** → report "Smells analysis: clean" and proceed to step 9
 
-3. **If no issues found** → report "Smells analysis: clean" and proceed to the next phase.
+3. **Execute fixer inline**:
+   - Resolve `prompts/fixer.md` from override chain
+   - Analyze ALL collected smells findings
+   - For each finding:
+     - Verify it's real
+     - If confirmed, fix using standard tools
+     - If not, skip
+   - Run tests to verify fixes
+   - Commit fixes
+   - Report to user and proceed to next phase
 
-4. **Spawn a fixer agent** — resolve `prompts/fixer.md` through the override chain. Launch with `mode: "bypassPermissions"`, `subagent_type: "general-purpose"`. Pass the FULL smells output as FINDINGS_LIST.
-
-5. **After fixer returns** → report fixes to user. Proceed to the next phase.
-
-### Step 9. Review phase 3 — critical only
+### Step 9. Review phase 3 — critical only (Sequential Inline Execution)
 
 Report to user: "--- Review phase 3: critical/major only (single pass) ---"
 
-Same structure as step 7 but with `REVIEW_PHASE` set to `critical`. Resolve `prompts/review.md` through the override chain, spawn one review agent. The review agent launches 2 agents (quality, implementation) focusing on critical/major issues only. Same fixer flow — pass findings to fixer, show FIXES to user.
+Run once with focus on critical/major issues only:
 
-### Step 10. Finalize
+1. **Execute critical review inline**:
+   - Resolve `prompts/review.md` from override chain (with `REVIEW_PHASE=critical`)
+   - Resolve `agents/quality.txt` and `agents/implementation.txt` only (focus on critical issues)
+   - Analyze code with critical/major issue filter
+   - Collect critical findings
+   - Report to user
+
+2. **If no critical findings** → report "Phase 3: clean" and proceed to step 10
+
+3. **Execute fixer inline**:
+   - Resolve `prompts/fixer.md` from override chain
+   - Analyze ALL collected critical findings
+   - For each finding:
+     - Verify it's real and critical
+     - If confirmed, fix using standard tools
+     - If not, skip
+   - Run tests to verify fixes
+   - Commit fixes
+   - Report to user and proceed to next phase
+
+### Step 10. Finalize (Sequential Inline Execution)
 
 Check `finalize_enabled` (default: true). If false, skip this step.
 
@@ -335,7 +394,14 @@ After all reviews pass, rebase and clean up commits.
 
 Report to user: "--- Finalize: rebase and clean up commits ---"
 
-Spawn one Agent tool call with `mode: "bypassPermissions"`, `subagent_type: "general-purpose"`, and the prompt from `prompts/finalizer.md`. Replace `DEFAULT_BRANCH`, `PLAN_FILE_PATH`, and `PROGRESS_FILE_PATH`.
+Execute finalization inline:
+1. Resolve `prompts/finalizer.md` from override chain for guidance
+2. Fetch latest from `DEFAULT_BRANCH`
+3. Rebase current branch onto `DEFAULT_BRANCH` using bash: `git rebase <DEFAULT_BRANCH>`
+4. Squash related commits for cleaner history using bash: `git rebase -i <DEFAULT_BRANCH>` or auto-squash
+5. Run final validation tests using bash
+6. Verify all tests pass
+7. Log completion to progress file
 
 This is best-effort — if rebase fails, report the issue but don't block completion.
 
