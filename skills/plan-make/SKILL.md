@@ -7,7 +7,19 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Task, Enter
 
 # Implementation Plan Creation
 
-create an implementation plan in `docs/plans/yyyymmdd-<task-name>.md` with interactive context gathering.
+Create an implementation plan in `docs/plans/yyyymmdd-<task-name>.md` with interactive context gathering.
+
+## Environment-Specific Usage
+
+**In Claude Code:**
+- Invoke: `/plan-make <task description>`
+- Auto review option: Launches plan-review skill directly
+
+**In OpenCode:**
+- Invoke: `claude plan-make <task description>` (or through CLI)
+- Auto review option: Launches plan-review skill through OpenCode mechanism
+
+Both environments create the same plan format and support all features.
 
 ## step 0: parse intent and gather context
 

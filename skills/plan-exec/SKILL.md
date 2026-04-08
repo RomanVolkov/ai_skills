@@ -6,7 +6,19 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash(bash:*), AskUserQuestion, Tas
 
 # plan-exec
 
-Execute plan file tasks sequentially, each in an isolated subagent.
+Execute plan file tasks sequentially with inline execution of all implementation, review, and finalization logic.
+
+## Environment-Specific Usage
+
+**In Claude Code:**
+- Invoke: `/plan-exec docs/plans/<plan-file>.md`
+- Execution: All tasks, reviews, and finalization run inline sequentially
+
+**In OpenCode:**
+- Invoke: `claude plan-exec docs/plans/<plan-file>.md` (or through OpenCode CLI)
+- Execution: All tasks, reviews, and finalization run inline sequentially
+
+Both environments use identical sequential inline execution (no subagent spawning).
 
 ## Arguments
 
