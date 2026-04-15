@@ -24,6 +24,10 @@ Whether you're debugging complex issues, designing implementation strategies, re
 - **[brainstorm](skills/brainstorm/)** — Collaborative dialogue skill for deep analysis and design exploration. Use before creative work or significant changes.
 - **[dialectic](skills/dialectic/)** — Prove and counter-prove statements using parallel agents. Stress-tests claims and eliminates confirmation bias.
 
+### Project Management
+
+- **[create-tasks](skills/create-tasks/)** — Create structured descriptions for epics, user stories, and tasks. SMART-compliant, adjective-free, with Definition of Ready/Done. Includes type detection and breakdown (epic → stories → tasks). YouTrack markdown output.
+
 ### Debugging & Problem Solving
 
 - **[root-cause](skills/root-cause/)** — Systematic root cause analysis using 5-Why methodology. Find the real source of errors, build failures, and performance issues.
@@ -63,10 +67,8 @@ Run the installation script to copy skills to both Claude Code and OpenCode:
 ```
 
 This installs all skills to:
-- `~/.claude/skills/` — For Claude Code users
-- `~/.config/opencode/skills/` — For OpenCode users
-
-The skills automatically detect which environment they're running in and use the appropriate installation.
+- `~/.claude/skills/` — For Claude Code CLI and Claude Desktop app
+- `~/.config/opencode/skills/` — For OpenCode
 
 ### Using a Skill
 
@@ -78,6 +80,7 @@ After installation, skills are available in both Claude Code and OpenCode. Invok
 /root-cause         # Analyze a problem systematically
 /git-review         # Review code changes
 /skill-creator      # Build a new skill
+/create-tasks       # Write epic/story/task descriptions
 ```
 
 Or reference them naturally in conversation:
@@ -101,6 +104,7 @@ ai_skills/
 │   ├── wrong/                     # Fresh perspective tool
 │   ├── git-review/                # Code review skill
 │   ├── skill-creator/             # Skill creation & iteration
+│   ├── create-tasks/              # Work item descriptions (epics/stories/tasks)
 │   ├── readme-generator/          # README generation
 │   ├── german-email-composer/     # German email composition
 │   ├── frontend-design/           # UI/frontend design
