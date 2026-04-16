@@ -14,10 +14,11 @@ Create structured, SMART-compliant descriptions for epics, user stories, and tas
 These principles apply to every work item this skill produces. They are non-negotiable because vague descriptions cause rework, scope creep, and misaligned expectations.
 
 1. **SMART compliance** — every work item must be Specific, Measurable, Achievable, Relevant, and Time-bound. Each dimension is enforced through the templates below.
-2. **Zero adjectives** — never use subjective qualifiers (fast, simple, intuitive, robust, seamless, user-friendly, clean, modern, scalable, reliable, minimal, significant, easy, good). Replace every adjective with a fact: a number, a named standard, or an operational definition. "Fast" becomes "responds within 200ms at p95." "User-friendly" becomes "new users complete the flow without assistance in under 3 minutes."
-3. **Definition of Ready / Definition of Done** — every work item includes both, tailored to its type.
-4. **The "why" comes first** — every epic and user story starts by answering: what problem exists, who has it, and what happens if we do nothing. Tasks link back to their parent story's "why."
-5. **Type honesty** — if the content doesn't match the declared type, flag it. An "epic" with one done criterion is a task. A "task" that spans multiple teams is an epic. Say so.
+2. **Zero adjectives** — never use subjective qualifiers. Replace every adjective with a number, a named standard, or an operational definition. See "Writing style rules" for the full list of banned words.
+3. **Conciseness** — every section and every line must earn its place. Do not include sections that restate other sections. Do not include checklist items that are self-evident from the template structure. Do not enumerate specific implementation details (CVEs, file paths, version numbers) in epics or stories — those belong in tasks.
+4. **Definition of Ready / Definition of Done** — every work item includes both, but only with non-obvious items tailored to the specific work item. Do not pad with generic process items.
+5. **The "why" comes first** — every epic and user story starts by answering: what problem exists, who has it, and what happens if we do nothing. Tasks link back to their parent story's "why."
+6. **Type honesty** — if the content doesn't match the declared type, flag it. An "epic" with one done criterion is a task. A "task" that spans multiple teams is an epic. Say so.
 
 ## Step 0: Determine the type
 
@@ -69,8 +70,7 @@ Ask in this order, one at a time:
 3. **Benefit**: "Why does this person want this? What happens if they can't do it?"
 4. **Acceptance criteria**: "Describe the expected behavior. What should happen on success? On failure? At boundary conditions?"
    - Ask follow-up questions to fill gaps in the happy path, error paths, and edge cases.
-5. **Constraints**: "Are there performance, accessibility, security, or compatibility requirements? (specific numbers, not adjectives)"
-6. **Parent epic**: "Which epic does this belong to? (or is it standalone?)"
+5. **Parent epic**: "Which epic does this belong to? (or is it standalone?)"
 
 ### For Tasks
 
@@ -124,6 +124,8 @@ Use the template for the validated type. Output is YouTrack-compatible markdown.
 
 ### Epic template
 
+Never include an "Out of Scope" section — if something is not listed in Scope, it is out of scope. A separate exclusion list adds noise and ages poorly.
+
 ```markdown
 # [Epic Title — verb-noun format, e.g., "Implement Self-Service Subscription Management"]
 
@@ -146,30 +148,26 @@ Use the template for the validated type. Output is YouTrack-compatible markdown.
 | [Metric 1] | [Current value] | [Target value] | [How measured] | [When to check] |
 
 ## Definition of Ready
-- [ ] Problem statement reviewed by stakeholders
 - [ ] Success metrics have baselines and targets
-- [ ] Scope agreed by stakeholders
 - [ ] Initial story breakdown exists
-- [ ] Dependencies identified with owners and resolution dates
-- [ ] T-shirt size or rough estimate provided
+- [ ] Dependencies identified with owners
+- [ ] Estimate provided
 - [ ] Epic owner assigned
 
 ## Definition of Done
 - [ ] [Outcome-based criterion with measurable threshold]
 - [ ] [Outcome-based criterion with measurable threshold]
-- [ ] [Non-functional requirement: performance, security, accessibility — with numbers]
-- [ ] [Observability: monitoring, analytics, alerting in place]
 - [ ] All child stories meet their own Definition of Done
-- [ ] Success metrics instrumentation deployed and collecting data
-- [ ] End-to-end integration tested
-- [ ] Stakeholder demo completed
-- [ ] Documentation updated (user-facing, API, runbooks)
-- [ ] Deployed to production (or release-ready)
+- [ ] [Additional criteria only if non-obvious for this epic]
 ```
 
-The epic DoD serves double duty: the top items are the measurable outcome criteria (what was previously "acceptance criteria"), and the bottom items are the process quality gates. This avoids having a separate acceptance criteria section that duplicates DoD.
+The epic DoD serves double duty: the top items are the measurable outcome criteria, and the bottom items are process quality gates. Only include items that are non-obvious — do not pad with generic items like "stakeholder demo completed" or "documentation updated" unless they carry real risk of being forgotten for this specific epic.
 
 ### User Story template
+
+Acceptance criteria should describe outcomes at the right abstraction level for a story. Do not enumerate specific findings, CVE IDs, package versions, file paths, or line numbers — those belong in task descriptions that reference the source data. Acceptance criteria reference categories and data sources (e.g., "Given Trivy reports for all repos" not "Given axios@1.13.2 has CVE-2025-62718").
+
+Do not include a separate "Constraints" section. If a constraint matters, express it as an acceptance criterion or a Definition of Done item.
 
 ```markdown
 # [Story Title — describes the user behavior]
@@ -199,32 +197,14 @@ The epic DoD serves double duty: the top items are the measurable outcome criter
 **When** [invalid action or failure condition]
 **Then** [specific error handling behavior]
 
-## Constraints
-- Performance: [specific metric, e.g., "page renders in under 1.5s on 4G (Lighthouse mobile)"]
-- Accessibility: [specific standard, e.g., "meets WCAG 2.1 AA, all form inputs have labels"]
-- Security: [specific requirement, e.g., "input sanitized against XSS, authentication required"]
-- Compatibility: [specific scope, e.g., "Chrome 120+, Firefox 120+, Safari 17+, viewport 320px-1440px"]
-
-## Definition of Ready
-- [ ] Persona identified (not generic "user")
-- [ ] "So that" clause states a measurable benefit
-- [ ] At least 3 acceptance criteria in Given/When/Then format
-- [ ] Error and edge case scenarios included
-- [ ] Performance/accessibility/security constraints stated with numbers
-- [ ] Story estimated and fits within one sprint
-- [ ] Dependencies resolved or scheduled before sprint start
-- [ ] UX/UI designs available (if applicable)
-
 ## Definition of Done
 - [ ] All acceptance criteria pass
-- [ ] Code peer-reviewed and approved
-- [ ] Unit tests written and passing
-- [ ] Integration tests written and passing (if applicable)
-- [ ] No regressions in existing test suite
-- [ ] Deployed to staging and verified
-- [ ] Product owner accepted
-- [ ] Documentation updated (if applicable)
+- [ ] Code peer-reviewed and merged
+- [ ] Tests passing; no regressions
+- [ ] [Additional items only if non-obvious for this story]
 ```
+
+Only include DoD items that someone might actually forget or skip for this story. Do not pad with generic process items that apply to every story in the project.
 
 ### Task template
 
@@ -333,6 +313,7 @@ When breaking down a story into tasks:
 
 These rules apply to all generated text:
 
+- **Zero adjectives.** Never use subjective qualifiers anywhere in the output — not in titles, not in acceptance criteria, not in DoD items. Replace every adjective with a number, a named standard, or an operational definition. This applies even when the user's input contains adjectives — translate them into facts. "Fast" → "responds within 200ms at p95." "User-friendly" → "new users complete the flow without assistance in under 3 minutes." "Secure" → "passes OWASP Top 10 checks with 0 Critical/High findings."
 - Use imperative form in titles: "Create...", "Implement...", "Add..."
 - State facts, not opinions: "340 support tickets per month" not "too many support tickets"
 - Every number has a unit: "200ms", "500 concurrent users", "3 hours"
@@ -341,3 +322,4 @@ These rules apply to all generated text:
 - Ranges over false precision: "5-15% improvement" not "8.7% improvement" (unless the baseline is that precise)
 - No circular reasoning: "we need this because customers asked for it" — instead state what problem the customers have
 - No solution-as-justification: "migrate to X because X is better" — instead state what measurable outcome the migration achieves
+- **Hyperlink entities.** When a repository, service, wiki page, or board has a URL, render the name as a markdown link: `[copilot](https://gitlab.example.com/team/copilot)` not just "copilot". Never mention an entity as plain text when its URL is known.
