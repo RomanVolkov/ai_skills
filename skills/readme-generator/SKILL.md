@@ -6,7 +6,11 @@ license: MIT
 
 # README Generator
 
-Generate or update a comprehensive README.md file for GitHub repositories following best practices.
+Generate or update a README.md file for GitHub repositories following best practices.
+
+## Prose Style
+
+Write all README text following the `writing-style` skill — specifically its **Public-Facing Docs (README, guides, blog posts)** section. That skill is the single source for how to write: proper English, active voice, concise, no marketing or AI-speak, and the markdown formatting rules. Invoke it (Skill tool, name `writing-style`) before drafting prose, and apply it to every section you generate here.
 
 ## Purpose
 
@@ -108,20 +112,17 @@ Visit the interactive textbook at: [https://username.github.io/repo-name](https:
 
 ### Step 5: Write Overview/Short Description
 
-Create a compelling 1-3 paragraph overview that answers:
+Write a 1-3 paragraph overview that answers:
 
 - What is this project?
 - Who is it for?
-- Why is it valuable?
-- What makes it unique or special?
+- What does it do?
+- How does it differ from alternatives?
 
-**Guidelines:**
+**Guidelines:** follow the `writing-style` skill's **Public-Facing Docs** section for prose (active voice, concise, no marketing/AI-speak). In addition:
 
-- Keep it concise but engaging
-- Use active voice
-- Highlight key features or benefits
-- Mention the educational framework if applicable
-- For textbooks: mention target audience (grade level, prerequisites)
+- Mention the framework if applicable
+- For textbooks: state target audience (grade level, prerequisites)
 
 **Example for Intelligent Textbook:**
 
@@ -510,14 +511,7 @@ Generate the final README.md file in the repository root with all sections in or
 11. Contact
 12. Optional sections (Contributing, Citation, Changelog)
 
-**Formatting best practices:**
-
-- Use ATX-style headers (`#` not underlines)
-- Include blank lines before lists
-- Use code fences with language specifiers
-- Keep lines under 120 characters where practical
-- Use relative links for internal documentation
-- Add table of contents for longer READMEs (>500 lines)
+**Formatting best practices:** see the `writing-style` skill's **Public-Facing Docs > Markdown formatting for docs** rules (ATX headers, blank line before lists/code blocks, fenced code with language, lines under ~120 chars, relative internal links, table of contents for long docs).
 
 ## Supporting Scripts
 

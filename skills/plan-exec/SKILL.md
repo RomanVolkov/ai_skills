@@ -20,6 +20,10 @@ Execute plan file tasks sequentially with inline execution of all implementation
 
 Both environments use identical sequential inline execution (no subagent spawning).
 
+## Output Style
+
+Emit conversational output — status lines, phase headers, task announcements, review findings, summaries — in caveman **lite** style (see the `caveman` skill: drop filler and hedging, keep articles and full sentences, professional but tight). Keep precise and uncompressed: bash commands, code, file paths, the plan file's structure, and AskUserQuestion question/option text.
+
 ## Arguments
 
 - `$ARGUMENTS` — path to plan file (optional; if omitted, ask user to pick from `docs/plans/` directory)
@@ -185,14 +189,45 @@ bash "$SKILL_DIR/scripts/detect-branch.sh"
 
 ### Step 2. Ask about worktree isolation
 
-Ask the user whether to run in an isolated git worktree or in the current working directory using AskUserQuestion:
+First detect current branch state — run `git branch --show-current` and compare with the default branch detected earlier (from `detect-branch.sh`). Two cases:
 
-- **Worktree** — creates an isolated copy of the repo, all work happens there. Clean separation from the main working directory. Best for long-running plans where you want to keep working in the main repo.
-- **Current directory** — works directly in the current repo. Simpler, but blocks the working directory during execution.
+**Case A — currently on the default branch (main/master/trunk).** Step 4 will create a new feature branch. Ask the user where it should live. Invoke the **AskUserQuestion** tool with this payload:
 
-If user chooses "Worktree", use `EnterWorktree` tool to create an isolated worktree before proceeding. All subsequent steps (branch creation, task execution, reviews, finalize) happen inside the worktree. At completion, report the worktree path and branch so the user can review and merge.
+```json
+{
+  "questions": [{
+    "question": "Where should the feature branch be created?",
+    "header": "Branch location",
+    "options": [
+      {"label": "Worktree (isolated)", "description": "Create the feature branch in a new isolated git worktree. Main working directory stays on the default branch."},
+      {"label": "In-place", "description": "Create the feature branch in this working directory. Main directory switches to the feature branch for the duration of the run."}
+    ],
+    "multiSelect": false
+  }]
+}
+```
 
-If user chooses "Current directory", proceed normally without worktree.
+**Case B — currently on a feature branch.** Step 4 will keep using this branch. Ask whether to move it to an isolated worktree or stay here. Invoke the **AskUserQuestion** tool with this payload:
+
+```json
+{
+  "questions": [{
+    "question": "You're already on a feature branch. Run the plan here, or in an isolated worktree?",
+    "header": "Isolation",
+    "options": [
+      {"label": "Stay here", "description": "Run the plan in this working directory, on the existing feature branch."},
+      {"label": "Move to worktree", "description": "Copy this branch into a new isolated git worktree. Main directory stays untouched."}
+    ],
+    "multiSelect": false
+  }]
+}
+```
+
+In BOTH cases: invoke the AskUserQuestion tool **now**, do not generate text first, do not skip, do not assume. The choice affects the user's working directory and cannot be decided on their behalf.
+
+If the user picks "Worktree (isolated)" or "Move to worktree", use the `EnterWorktree` tool to create an isolated worktree before proceeding. All subsequent steps (branch creation, task execution, reviews, finalize, stats) happen inside the worktree. At completion, report the worktree path and branch so the user can review and merge.
+
+If the user picks "In-place" or "Stay here", proceed normally without worktree.
 
 ### Step 3. Create task list
 
@@ -223,6 +258,8 @@ ALWAYS create proper tasks using TaskCreate before starting any work. This preve
    TaskCreate(subject="Review phase 2: code smells", description="Check for design issues", activeForm="Running review phase 2...")
    TaskCreate(subject="Review phase 3: critical only", description="Final critical review", activeForm="Running review phase 3...")
    TaskCreate(subject="Finalize", description="Rebase, clean up commits, verify test suite", activeForm="Finalizing...")
+   TaskCreate(subject="Stats summary", description="Aggregate git diff, commits, and progress-file stats", activeForm="Summarizing stats...")
+   TaskCreate(subject="Move plan to completed/", description="Move finished plan into docs/plans/completed/ and commit", activeForm="Moving plan...")
    ```
 
 5. **Update tasks as you progress**:
@@ -453,12 +490,29 @@ Execute finalization inline:
 
 This is best-effort — if rebase fails, report the issue but don't block completion.
 
-### Step 11. Completion
+### Step 11. Stats summary (Sequential Inline Execution)
 
-When finalize is done (or skipped on failure):
+After finalize (or after finalize was skipped), produce a run summary.
+
+Report to user: "--- Stats summary ---"
+
+1. Resolve `prompts/stats.md` from the override chain (use `bash "$SKILL_DIR/scripts/resolve-file.sh" prompts/stats.md`) for guidance.
+2. Run the git/plan/progress commands described there inline (`git diff --shortstat`/`--stat`, `git log --oneline | wc -l`, plan checkbox counts, progress-file timestamps and iteration counts).
+3. Print the resulting `## Run summary` markdown report to the user verbatim.
+
+This step is best-effort — if a command fails or data is unavailable, report the gap and continue. Do not block completion.
+
+### Step 12. Completion
+
+When the stats summary is done (or skipped on failure):
 - Log completion to progress file: `bash "$SKILL_DIR/scripts/append-progress.sh" <progress-file> "completed"`
-- Report summary: "All N tasks completed, reviews passed, branch finalized"
-- Do NOT move the plan file or push — just report completion
+- **Move the finished plan** into its `completed/` subdirectory and commit it (best-effort, git-only, no push). Use the inline SKILL_DIR pattern, then run:
+  ```bash
+  bash "$SKILL_DIR/scripts/move-plan.sh" <plan-file-path>
+  ```
+  The script is a no-op when the plan is already under `completed/` or missing, derives the target as a `completed/` sibling of the plan's directory (so it respects worktrees and custom plan dirs), refuses to overwrite an existing destination, and commits the move. If the script exits non-zero, report the failure but do not block completion.
+- Report the final line "All N tasks completed, reviews passed, branch finalized". Append ", plan moved to completed/" **ONLY** when `move-plan.sh` actually moved the file (it printed `moved plan to ...`); omit the suffix when the move was a no-op (already under `completed/` or missing) or exited non-zero.
+- Do NOT push.
 
 ## Key rules
 
@@ -466,6 +520,7 @@ When finalize is done (or skipped on failure):
   - If `TESTING_ENFORCED=true`: MUST write tests for every task and ensure all tests pass before marking task done
   - If `TESTING_ENFORCED=false`: may skip tests (but should still write them for non-trivial code)
 - Plan file is the single source of truth for progress — always re-read it after each task
+- Do NOT move or rename the plan file during the task, review, finalize, or stats phases — later phases re-read its path. The sole exception is the terminal move in Step 12 (after all phases finish), performed via `move-plan.sh`
 - No signals — just checkboxes in the plan for task progress
 - Maintain progress file (`/tmp/progress-<plan-name>.txt`) — see `prompts/progress-file.md` for format and when to write
 - **Modify the plan file** by updating checkboxes as tasks complete (mark `[ ]` → `[x]`)

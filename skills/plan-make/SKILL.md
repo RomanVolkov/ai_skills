@@ -21,6 +21,10 @@ Create an implementation plan in `docs/plans/yyyymmdd-<task-name>.md` with inter
 
 Both environments create the same plan format and support all features.
 
+## Output Style
+
+Emit conversational output — context summaries, explanations, recommendations, status — in caveman **lite** style (see the `caveman` skill: drop filler and hedging, keep articles and full sentences, professional but tight). Keep precise and uncompressed: the plan file content and structure (headers, `### Task N:`, `**Files:**` blocks, `[ ]` checkboxes, code, file paths) and the AskUserQuestion question/option text.
+
 ## step 0: parse intent and gather context
 
 before asking questions, understand what the user is working on:
@@ -32,33 +36,34 @@ before asking questions, understand what the user is working on:
    - "migrate to Z" / "upgrade W" → migration plan
    - generic request → explore current work
 
-2. **gather context** using code exploration based on intent:
+2. **gather relevant context quickly** — use direct tool calls (Read, Glob, Grep), NOT an Explore agent. keep discovery under 30 seconds:
 
    **for feature development:**
-   - locate related existing code and patterns
-   - check project structure and similar implementations
-   - identify affected components and dependencies
+   - glob for files matching the feature area (e.g., `**/*auth*`, `**/*cache*`)
+   - read 1-3 most relevant files to understand existing patterns
+   - check project structure with a quick `ls` of key directories
 
    **for bug fixing:**
-   - look for error logs, test failures, or stack traces
-   - find related code that might be involved
-   - check recent changes in problem areas
+   - grep for error messages or function names mentioned in the request
+   - read the specific file(s) involved
+   - check `git log --oneline -5` for recent changes
 
    **for refactoring/migration:**
-   - identify all files/components affected
-   - check test coverage of affected areas
-   - find dependencies and integration points
+   - glob for files matching the area being refactored
+   - read 2-3 key files to understand current structure
+   - grep for imports/references to identify dependencies
 
    **for generic/unclear requests:**
-   - check `git status` and recent file activity
-   - examine current working directory structure
-   - identify primary language/framework
+   - check `git status` and `git log --oneline -5`
+   - read README.md or CLAUDE.md for project overview
+   - `ls` the top-level directory structure
 
-3. **synthesize findings** into context summary:
-   - what work is in progress
-   - which files/areas are involved
-   - what the apparent goal is
-   - relevant patterns or structure discovered
+   **CRITICAL: do NOT launch an Explore agent or read more than 5 files in this step. the goal is a quick scan, not exhaustive analysis. if more context is needed, ask the user in step 1.**
+
+3. **synthesize findings** into a brief context summary (3-5 bullet points):
+   - what the project is and primary language/framework
+   - which files/areas are relevant to the request
+   - key patterns or conventions observed
 
 ## step 1: present context and ask focused questions
 
@@ -174,6 +179,11 @@ check `docs/plans/` for existing files, then create `docs/plans/yyyymmdd-<task-n
 - document issues/blockers with ⚠️ prefix
 - update plan if implementation deviates from original scope
 - keep plan in sync with actual work done
+
+## Solution Overview
+- high-level approach and architecture chosen
+- key design decisions and rationale
+- how it fits into the existing system
 
 ## What Goes Where
 - **Implementation Steps** (`[ ]` checkboxes): tasks achievable within this codebase - code changes, tests, documentation updates
